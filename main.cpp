@@ -200,7 +200,7 @@ int checkPos(xycoord p) //
 	} 
 	if (p.borw == false)
 	{
-		for (int i = 0; i < 19; i++) // 흑 가로축 승리조건
+		for (int i = 0; i < 19; i++) // 백 가로축 승리조건
 		{
 			for (int j = 0; j < 19; j++)
 			{
