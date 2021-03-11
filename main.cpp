@@ -18,49 +18,45 @@ struct xycoord {
 	bool borw;
 };
 
-void movetoxy(int xpos, int ypos);
+void movetoxy(int, int);
 void clearScreen();
 char anyKey();
 void startscreen();
 void tableOverlay();
-int GameControl(xycoord* p, int* i);
-int checkPos(xycoord p);
-void sysText(xycoord p, int k);
+int GameControl(xycoord*);
+int checkPos(xycoord);
+void sysText(xycoord, int);
 
-
+int blackstack = 0;
+int whitestack = 0;
 int main(void)
 {
-	int win=0;
 	startscreen();
 	xycoord dpos{ { 0 }, 9, 9, false }; // 중앙
 	tableOverlay();
-	movetoxy(dpos.xpos * 2, dpos.ypos );
-	GameControl(&dpos, &win);
+	movetoxy(dpos.xpos * 2, dpos.ypos);
+	GameControl(&dpos);
 
-	if (win == 1) sysText(dpos, win+4);
-
-		movetoxy(0, 0);
+	movetoxy(0, 0);
 	std::cout << "게임 끝!";
 
 	anyKey();
-	
-
-
 
 }
 
-int GameControl(xycoord* p, int *i)
+int GameControl(xycoord* p)
 {
-	int check=0;
+	int check = 0;
 	char keybuff;
 	while (1)
 	{
-		if (checkPos(*p) == 5) return 1;  // 흑승
-		if (checkPos(*p) == 6) return 2; // 백승
+		
 		keybuff = 0;
 		while (keybuff != 32)
 		{
-
+			check = checkPos(*p);
+			if (check == 5) break;  // 흑승
+			if (check == 6) break;
 			switch (keybuff = anyKey())
 			{
 			case (LEFT):
@@ -82,24 +78,28 @@ int GameControl(xycoord* p, int *i)
 			}
 
 			case (UP):
-			{	
+			{
 				if (p->ypos != 0) p->ypos--;
 				break;
 			}
 			}
 			movetoxy(p->xpos * 2, p->ypos);
+			
 		}
+		
 		check = checkPos(*p);
-
-		if (check == 0 && p->borw == false) p->pos[p->xpos][p->ypos] = 1; // 흑=1, 백=20, 돌이 없을때만 둠
-		else if (check == 0 && p->borw == true) p->pos[p->xpos][p->ypos] = 20;
-		else
+		if (check == 0 && p->borw == false) p->pos[p->xpos][p->ypos] = 1; // 흑=1, 백=2, 돌이 없을때만 둠
+		else if (check == 0 && p->borw == true) p->pos[p->xpos][p->ypos] = 2;
+		
+		if (check != 0)
 		{
 			sysText(*p, check); // 돌이있을경우 출력후 다시 돌아감
+			check = checkPos(*p);
+			if (check == 5) break;  // 흑승
+			if (check == 6) break;
 			continue;
 		}
-		if (check == 5) return 0;
-
+		
 		if (p->borw == false) // 흑일때, 
 		{
 			std::cout << "○";
@@ -110,167 +110,217 @@ int GameControl(xycoord* p, int *i)
 			std::cout << "●";
 			p->borw = false;
 		}
+
+		check = checkPos(*p);
 		sysText(*p, 0); // 지우기
-		
 	}
-	
+
+	return 0;
+
 }
 
 int checkPos(xycoord p) // 
 {
-	int count = 0;
+
 	int k = 0;
 
 	if (p.pos[p.xpos][p.ypos] != 0) // 이미 둔곳
-	{	
+	{
 		return 1;
 	}
-
-	if (p.borw == true) 
+	for (int i = p.ypos - 4; i <= p.ypos + 4; i++)  // 가로
 	{
-		for (int i = 0; i < 19; i++) // 흑 가로축 승리조건
+		if (i < 0) i = 0;
+		if (i > 18) break;
+		for (int j = p.xpos - 4; j <= p.xpos + 4; j++)
 		{
-			for (int j = 0; j < 19; j++)
-			{ 
-				count += p.pos[j][i]; // 00 10 20
-				if (p.pos[j][i] != 1) count = 0;
-				if (count == 5) return 5; // 흑승
-			}
-			count = 0;
-		}
-
-		for (int i = 0; i < 19; i++) // 흑 세로축 승리조건
-		{
-			for (int j = 0; j < 19; j++)
+			if (j < 0) j = 0;
+			if (j > 18) break;
+			if (p.pos[j][i] == 1)
 			{
-				count += p.pos[i][j];
-				if (p.pos[i][j] != 1) count = 0;
-				if (count == 5) return 5; // 흑승
+				blackstack++;
+				whitestack = 0;
 			}
-			count = 0;
-		}
-
-// 흑 대각선 ↘
-
-		for (int i = 19; i > 4; i--)
-		{
-			k = i;
-			while (k > 0)
+			else if (p.pos[j][i] == 2)
 			{
-				count += p.pos[19 - k][i - k];
-				if (p.pos[19 - k][i - k] != 1) count = 0;
-				if (count == 5) return 5;
-				k--;
+				blackstack = 0;
+				whitestack++;
 			}
-			count = 0;
-			k = i;
-
-			while (k > 0)
-			{
-				count += p.pos[i - k][19 - k]; 
-				if (p.pos[i - k][19 - k] != 1) count = 0;
-				if (count == 5) return 5;
-				k--;
+			else {
+				whitestack = 0;
+				blackstack = 0;
 			}
-			count = 0;
-			k = i;
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
 
-// 흑 대각선 ↙
-			while (k > 0)
-			{
-				count += p.pos[k][i - k];
-				if (p.pos[k][i - k] != 1) count = 0;
-				if (count == 5) return 5;
-				k--;
-			}
-			count = 0;
-			k = i;
-
-			while (k > 0)
-			{
-				count += p.pos[k - i + 19][19 - k];
-				if (p.pos[k - i + 19][19 - k] != 1) count = 0;
-				if (count == 5) return 5;
-				k--;
-			}
-			count = 0;
-		}
-
-
-	} 
-	if (p.borw == false)
-	{
-		for (int i = 0; i < 19; i++) // 백 가로축 승리조건
-		{
-			for (int j = 0; j < 19; j++)
-			{
-				count += p.pos[j][i];
-				if (p.pos[j][i] != 20) count = 0;
-				if (count == 100) return 6; // 백승
-			}
-			count = 0;
-		}
-
-		for (int i = 0; i < 19; i++) // 백 세로축 승리조건
-		{
-			for (int j = 0; j < 19; j++)
-			{
-				count += p.pos[i][j];
-				if (p.pos[i][j] != 20) count = 0;
-				if (count == 100) return 6; // 백승
-			}
-			count = 0;
 		}
 	}
+	for (int i = p.ypos - 4; i <= p.ypos + 4; i++) // 세로
+	{
+		if (i < 0) i = 0;
+		if (i > 18) break;
+		for (int j = p.xpos - 4; j <= p.xpos + 4; j++)
+		{
+			if (j < 0) j = 0;
+			if (j > 18) break;
+			if (p.pos[i][j] == 1)
+			{
+				blackstack++;
+				whitestack = 0;
+			}
+			else if (p.pos[i][j] == 2)
+			{
+				blackstack = 0;
+				whitestack++;
+			}
+			else {
+				whitestack = 0;
+				blackstack = 0;
+			}
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
 
+		}
+	}
+	for (int i = 19; i > 4; i--) // 대각선 ↘
+	{
+		k = i;
+		while (k > 0)
+		{
+			if (p.pos[19 - k][i - k] == 1)
+			{
+				blackstack++;
+				whitestack = 0;
+			}
+			else if (p.pos[19 - k][i - k] == 2)
+			{
+				blackstack = 0;
+				whitestack++;
+			}
+			else {
+				whitestack = 0;
+				blackstack = 0;
+			}
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
+			k--;
+		}
+		whitestack = 0;
+		blackstack = 0;
+		k = i;
+		while (k > 0)
+		{
+			if (p.pos[i - k][19 - k] == 1)
+			{
+				blackstack++;
+				whitestack = 0;
+			}
+			else if (p.pos[i - k][19 - k] == 2)
+			{
+				blackstack = 0;
+				whitestack++;
+			}
+			else {
+				whitestack = 0;
+				blackstack = 0;
+			}
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
+			k--;
+		}
+		whitestack = 0;
+		blackstack = 0;
+		k = i;
+		while (k >= 0) // 대각선 반대
+		{
+			if (p.pos[k][i - k] == 1)
+			{
+				blackstack++;
+				whitestack = 0;
+			}
+			else if (p.pos[k][i - k] == 2)
+			{
+				blackstack = 0;
+				whitestack++;
+			}
+			else {
+				whitestack = 0;
+				blackstack = 0;
+			}
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
+			k--;
+		}
+		whitestack = 0;
+		blackstack = 0;
+		k = i;
+		while (k > 0)
+		{
+			if (p.pos[k - i + 19][19 - k] == 1)
+			{
+				blackstack++;
+				whitestack = 0;
+			}
+			else if (p.pos[k - i + 19][19 - k] == 2)
+			{
+				blackstack = 0;
+				whitestack++;
+			}
+			else {
+				whitestack = 0;
+				blackstack = 0;
+			}
+			if (blackstack == 5) return 5;
+			if (whitestack == 5) return 6;
+			k--;
+		}
+		whitestack = 0;
+		blackstack = 0;
+	}
 	return 0;
-	 
 }
 
 void sysText(xycoord p, int k)
 {
 	movetoxy(50, 10);
-	//std::cout << "count =" << count;
-	movetoxy(50, 10);
 	switch (k)
 	{
-		case 0:
-		{
-			std::cout << "　　　　　　　　　";
-			break;
-		}
-		case 1:
-		{
-			std::cout << "이미 둔곳입니다. ";// 이미 둔 곳
-			break;
-		}
-		case 2:
-		{
-			std::cout << "33입니다. ";
-			break;
-		}
-		case 3:
-		{
+	case 0:
+	{
+		std::cout << "　　　　　　　　　";
+		break;
+	}
+	case 1:
+	{
+		std::cout << "이미 둔곳입니다. ";// 이미 둔 곳
+		break;
+	}
+	case 2:
+	{
+		std::cout << "33입니다. ";
+		break;
+	}
+	case 3:
+	{
 
-			std::cout << "44입니다. ";
-			break;
-		}
-		case 4:
-		{
-			std::cout << "6목입니다. ";
-			break;
-		}
-		case 5:
-		{
-			std::cout << "흑 승! ";
-			break;
-		}
-		case 6:
-		{
-			std::cout << "백 승! ";
-			break;
-		}
-		
+		std::cout << "44입니다. ";
+		break;
+	}
+	case 4:
+	{
+		std::cout << "6목입니다. ";
+		break;
+	}
+	case 5:
+	{
+		std::cout << "흑 승! ";
+		break;
+	}
+	case 6:
+	{
+		std::cout << "백 승! ";
+		break;
+	}
 
 	}
 	movetoxy(p.xpos * 2, p.ypos);
@@ -280,7 +330,7 @@ void sysText(xycoord p, int k)
 
 void startscreen()
 {
-	movetoxy(0,0);
+	movetoxy(0, 0);
 	std::cout << "반갑습니다. 아무키나 누르세요. ";
 	movetoxy(5, 1);
 	std::cout << "○ = 흑, ● = 백";
@@ -295,7 +345,7 @@ void tableOverlay()
 
 	for (int i = 0; i < 19; i++)
 	{
-		movetoxy(0,i);
+		movetoxy(0, i);
 		std::cout << "┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼ ┼";
 	};
 	movetoxy(18, 9);
@@ -322,4 +372,4 @@ void movetoxy(int col, int row)
 void clearScreen()
 {
 	system("cls");
-}	
+}
