@@ -35,9 +35,10 @@ int main(void)
 	xycoord dpos{ { 0 }, 9, 9, false }; // 중앙
 	tableOverlay();
 	movetoxy(dpos.xpos * 2, dpos.ypos);
-	GameControl(&dpos);
+	if (GameControl(&dpos) == 1) sysText(dpos, 5);
+	else sysText(dpos, 6);
 
-	movetoxy(0, 0);
+	movetoxy(50, 19);
 	std::cout << "게임 끝!";
 
 	anyKey();
@@ -48,70 +49,70 @@ int GameControl(xycoord* p)
 {
 	int check = 0;
 	char keybuff;
+	int xbuff, ybuff;
 	while (1)
 	{
-		
+		xbuff = p->xpos;
+		ybuff = p->ypos;
 		keybuff = 0;
 		while (keybuff != 32)
 		{
-			check = checkPos(*p);
-			if (check == 5) break;  // 흑승
-			if (check == 6) break;
 			switch (keybuff = anyKey())
 			{
 			case (LEFT):
 			{
-				if (p->xpos != 0) p->xpos--;
+				if (xbuff != 0) xbuff--;
 				break;
 			}
 
 			case (RIGHT):
 			{
-				if (p->xpos != 18) p->xpos++;
+				if (xbuff != 18) xbuff++;
 				break;
 			}
 
 			case (DOWN):
 			{
-				if (p->ypos != 18) p->ypos++;
+				if (ybuff != 18) ybuff++;
 				break;
 			}
 
 			case (UP):
 			{
-				if (p->ypos != 0) p->ypos--;
+				if (ybuff != 0) ybuff--;
 				break;
 			}
 			}
-			movetoxy(p->xpos * 2, p->ypos);
-			
+			movetoxy(xbuff * 2, ybuff);
+
 		}
-		
+		p->xpos = xbuff;
+		p->ypos = ybuff;
 		check = checkPos(*p);
-		if (check == 0 && p->borw == false) p->pos[p->xpos][p->ypos] = 1; // 흑=1, 백=2, 돌이 없을때만 둠
-		else if (check == 0 && p->borw == true) p->pos[p->xpos][p->ypos] = 2;
-		
-		if (check != 0)
-		{
-			sysText(*p, check); // 돌이있을경우 출력후 다시 돌아감
-			check = checkPos(*p);
-			if (check == 5) break;  // 흑승
-			if (check == 6) break;
-			continue;
-		}
-		
-		if (p->borw == false) // 흑일때, 
-		{
+		if (check == 0 && p->borw == false) { // 흑=1, 백=2, 돌이 없을때만 둠
 			std::cout << "○";
 			p->borw = true; // 백턴으로
+			p->pos[p->xpos][p->ypos] = 1;
 		}
-		else
+		else if (check == 0 && p->borw == true)
 		{
 			std::cout << "●";
 			p->borw = false;
+			p->pos[p->xpos][p->ypos] = 2;
+		}
+		else if (check == 1)
+		{
+			sysText(*p, check); // 돌이있을경우 출력후 다시 돌아감
+			continue;
 		}
 
 		check = checkPos(*p);
+		if (checkPos(*p) == 5) return 1;
+		if (checkPos(*p) == 6) return 2;
+		movetoxy(p->xpos * 2, p->ypos);
+
+		check = checkPos(*p);
+
 		sysText(*p, 0); // 지우기
 	}
 
@@ -123,19 +124,10 @@ int checkPos(xycoord p) //
 {
 
 	int k = 0;
-
-	if (p.pos[p.xpos][p.ypos] != 0) // 이미 둔곳
+	for (int i = 0; i <= 18; i++)  // 가로
 	{
-		return 1;
-	}
-	for (int i = p.ypos - 4; i <= p.ypos + 4; i++)  // 가로
-	{
-		if (i < 0) i = 0;
-		if (i > 18) break;
-		for (int j = p.xpos - 4; j <= p.xpos + 4; j++)
+		for (int j = 0; j <= 18; j++)
 		{
-			if (j < 0) j = 0;
-			if (j > 18) break;
 			if (p.pos[j][i] == 1)
 			{
 				blackstack++;
@@ -152,17 +144,16 @@ int checkPos(xycoord p) //
 			}
 			if (blackstack == 5) return 5;
 			if (whitestack == 5) return 6;
-
 		}
+		whitestack = 0;
+		blackstack = 0;
+		
 	}
-	for (int i = p.ypos - 4; i <= p.ypos + 4; i++) // 세로
+	
+	for (int i = 0; i <= 18; i++) // 세로
 	{
-		if (i < 0) i = 0;
-		if (i > 18) break;
-		for (int j = p.xpos - 4; j <= p.xpos + 4; j++)
+		for (int j = 0; j <= 18; j++)
 		{
-			if (j < 0) j = 0;
-			if (j > 18) break;
 			if (p.pos[i][j] == 1)
 			{
 				blackstack++;
@@ -179,9 +170,11 @@ int checkPos(xycoord p) //
 			}
 			if (blackstack == 5) return 5;
 			if (whitestack == 5) return 6;
-
 		}
+		whitestack = 0;
+		blackstack = 0;
 	}
+
 	for (int i = 19; i > 4; i--) // 대각선 ↘
 	{
 		k = i;
@@ -276,6 +269,10 @@ int checkPos(xycoord p) //
 		}
 		whitestack = 0;
 		blackstack = 0;
+	}
+	if (p.pos[p.xpos][p.ypos] != 0) // 이미 둔곳
+	{
+		return 1;
 	}
 	return 0;
 }
